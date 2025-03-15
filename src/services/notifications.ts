@@ -3,6 +3,11 @@ export const isNotificationSupported = (): boolean => {
   return 'Notification' in window && 'serviceWorker' in navigator;
 };
 
+// Extended NotificationOptions interface to include vibrate property
+interface ExtendedNotificationOptions extends NotificationOptions {
+  vibrate?: number[];
+}
+
 // Request notification permission
 export const requestNotificationPermission = async (): Promise<boolean> => {
   if (!isNotificationSupported()) {
@@ -38,7 +43,7 @@ const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null
 // Send a notification
 export const sendNotification = async (
   title: string,
-  options: NotificationOptions = {}
+  options: ExtendedNotificationOptions = {}
 ): Promise<boolean> => {
   if (!isNotificationSupported()) {
     console.error('Notifications are not supported in this browser');
@@ -97,7 +102,7 @@ const removeScheduledNotification = (id: number): void => {
 export const scheduleNotification = (
   title: string,
   scheduledTime: Date,
-  options: NotificationOptions = {}
+  options: ExtendedNotificationOptions = {}
 ): number => {
   const now = new Date();
   const timeUntilNotification = scheduledTime.getTime() - now.getTime();
