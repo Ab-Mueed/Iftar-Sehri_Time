@@ -19,6 +19,11 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
+// Define a type for Safari's Navigator extension
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
 const InstallPWA: React.FC = () => {
   const { t } = useTranslation();
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -57,8 +62,10 @@ const InstallPWA: React.FC = () => {
     window.addEventListener('appinstalled', handleAppInstalled);
 
     // Check if the app was launched from the home screen
+    // Use type assertion for Safari's standalone property
+    const nav = window.navigator as NavigatorWithStandalone;
     if (
-      window.navigator.standalone === true ||
+      (nav.standalone === true) ||
       window.matchMedia('(display-mode: standalone)').matches
     ) {
       setIsInstalled(true);
