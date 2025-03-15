@@ -59,12 +59,21 @@ export const sendNotification = async (
     // Try to use the service worker for notifications
     const registration = await registerServiceWorker();
     if (registration) {
-      await registration.showNotification(title, {
+      // Use type assertion to handle the vibrate property
+      const notificationOptions = {
         ...options,
         icon: options.icon || '/icons/icon-192x192.png',
         badge: options.badge || '/icons/icon-192x192.png',
-        vibrate: options.vibrate || [100, 50, 100]
-      });
+      } as NotificationOptions;
+      
+      // Add vibrate separately with type assertion
+      if (options.vibrate) {
+        (notificationOptions as any).vibrate = options.vibrate;
+      } else {
+        (notificationOptions as any).vibrate = [100, 50, 100];
+      }
+      
+      await registration.showNotification(title, notificationOptions);
       return true;
     } else {
       // Fallback to regular notifications
