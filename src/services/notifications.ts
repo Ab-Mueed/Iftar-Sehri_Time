@@ -3,9 +3,19 @@ export const isNotificationSupported = (): boolean => {
   return 'Notification' in window && 'serviceWorker' in navigator;
 };
 
-// Extended NotificationOptions interface to include vibrate property
-interface ExtendedNotificationOptions extends NotificationOptions {
+// Define a more complete notification options interface
+interface CompleteNotificationOptions extends NotificationOptions {
   vibrate?: number[];
+  actions?: Array<{
+    action: string;
+    title: string;
+    icon?: string;
+  }>;
+  data?: any;
+  tag?: string;
+  renotify?: boolean;
+  requireInteraction?: boolean;
+  silent?: boolean;
 }
 
 // Request notification permission
@@ -43,7 +53,7 @@ const registerServiceWorker = async (): Promise<ServiceWorkerRegistration | null
 // Send a notification
 export const sendNotification = async (
   title: string,
-  options: ExtendedNotificationOptions = {}
+  options: NotificationOptions = {}
 ): Promise<boolean> => {
   if (!isNotificationSupported()) {
     console.error('Notifications are not supported in this browser');
@@ -59,21 +69,20 @@ export const sendNotification = async (
     // Try to use the service worker for notifications
     const registration = await registerServiceWorker();
     if (registration) {
-      // Use type assertion to handle the vibrate property
-      const notificationOptions = {
+      // Create a basic options object with standard properties
+      const standardOptions: NotificationOptions = {
         ...options,
         icon: options.icon || '/icons/icon-192x192.png',
         badge: options.badge || '/icons/icon-192x192.png',
-      } as NotificationOptions;
+      };
       
-      // Add vibrate separately with type assertion
-      if (options.vibrate) {
-        (notificationOptions as any).vibrate = options.vibrate;
-      } else {
-        (notificationOptions as any).vibrate = [100, 50, 100];
-      }
+      // Add vibrate property using type assertion
+      const fullOptions = {
+        ...standardOptions,
+        vibrate: [100, 50, 100]
+      };
       
-      await registration.showNotification(title, notificationOptions);
+      await registration.showNotification(title, fullOptions as any);
       return true;
     } else {
       // Fallback to regular notifications
@@ -111,7 +120,7 @@ const removeScheduledNotification = (id: number): void => {
 export const scheduleNotification = (
   title: string,
   scheduledTime: Date,
-  options: ExtendedNotificationOptions = {}
+  options: NotificationOptions = {}
 ): number => {
   const now = new Date();
   const timeUntilNotification = scheduledTime.getTime() - now.getTime();
@@ -162,7 +171,6 @@ export const scheduleSehriNotification = (
   return scheduleNotification(titles[language as keyof typeof titles], notificationTime, {
     body: bodies[language as keyof typeof bodies],
     icon: '/icons/icon-192x192.png',
-    vibrate: [100, 50, 100],
     badge: '/icons/icon-192x192.png',
     tag: 'sehri-notification' // Add a tag to replace existing notifications
   });
@@ -194,7 +202,6 @@ export const scheduleIftarNotification = (
   return scheduleNotification(titles[language as keyof typeof titles], notificationTime, {
     body: bodies[language as keyof typeof bodies],
     icon: '/icons/icon-192x192.png',
-    vibrate: [100, 50, 100],
     badge: '/icons/icon-192x192.png',
     tag: 'iftar-notification' // Add a tag to replace existing notifications
   });
