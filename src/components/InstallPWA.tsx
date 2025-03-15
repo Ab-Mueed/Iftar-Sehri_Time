@@ -30,21 +30,33 @@ const InstallPWA: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
-  const [showInstallButton, setShowInstallButton] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
+    // Check if it's a mobile device
+    const checkMobile = () => {
+      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+        navigator.userAgent
+      );
+      setIsMobile(isMobileDevice);
+      return isMobileDevice;
+    };
+
     // Check if the app is already installed
     if (window.matchMedia('(display-mode: standalone)').matches) {
       setIsStandalone(true);
       console.log('App is already installed and running in standalone mode');
     }
 
-    // Check if the app was launched from the home screen
+    // Check if the app was launched from the home screen on iOS
     const nav = window.navigator as NavigatorWithStandalone;
     if (nav.standalone === true) {
       setIsInstalled(true);
       console.log('App launched from home screen (iOS)');
     }
+
+    // Check if it's a mobile device
+    checkMobile();
 
     // Listen for the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
@@ -54,9 +66,6 @@ const InstallPWA: React.FC = () => {
       
       // Stash the event so it can be triggered later
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      
-      // Show the install button
-      setShowInstallButton(true);
     };
 
     // Listen for the appinstalled event
@@ -64,7 +73,6 @@ const InstallPWA: React.FC = () => {
       console.log('App was installed');
       setIsInstalled(true);
       setDeferredPrompt(null);
-      setShowInstallButton(false);
       setIsOpen(false);
     };
 
@@ -76,7 +84,7 @@ const InstallPWA: React.FC = () => {
       isStandalone: window.matchMedia('(display-mode: standalone)').matches,
       isSafariStandalone: (window.navigator as NavigatorWithStandalone).standalone,
       userAgent: window.navigator.userAgent,
-      isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent)
+      isMobile: checkMobile()
     });
 
     return () => {
@@ -86,35 +94,39 @@ const InstallPWA: React.FC = () => {
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) {
-      console.log('No installation prompt available');
-      
-      // For iOS devices, show instructions
-      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
-        setIsOpen(true);
-        return;
-      }
-      
+    // Check if it's iOS
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    
+    // For iOS devices, always show instructions
+    if (isIOS) {
+      setIsOpen(true);
       return;
     }
-
-    // Show the install prompt
-    deferredPrompt.prompt();
-
-    // Wait for the user to respond to the prompt
-    const choiceResult = await deferredPrompt.userChoice;
     
-    if (choiceResult.outcome === 'accepted') {
-      console.log('User accepted the install prompt');
-      setIsInstalled(true);
-    } else {
-      console.log('User dismissed the install prompt');
+    // For Android with deferredPrompt available
+    if (deferredPrompt) {
+      // Show the install prompt
+      deferredPrompt.prompt();
+
+      // Wait for the user to respond to the prompt
+      const choiceResult = await deferredPrompt.userChoice;
+      
+      if (choiceResult.outcome === 'accepted') {
+        console.log('User accepted the install prompt');
+        setIsInstalled(true);
+      } else {
+        console.log('User dismissed the install prompt');
+      }
+      
+      // Clear the deferredPrompt for the next time
+      setDeferredPrompt(null);
+      setIsOpen(false);
+      return;
     }
     
-    // Clear the deferredPrompt for the next time
-    setDeferredPrompt(null);
-    setShowInstallButton(false);
-    setIsOpen(false);
+    // For Android without deferredPrompt (fallback)
+    console.log('No installation prompt available');
+    setIsOpen(true);
   };
 
   // Don't show anything if the app is already installed or running in standalone mode
@@ -124,20 +136,25 @@ const InstallPWA: React.FC = () => {
 
   // Check if it's iOS
   const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Check if it's Android
+  const isAndroid = /Android/i.test(navigator.userAgent);
+
+  // Only show the button on mobile devices
+  if (!isMobile) {
+    return null;
+  }
 
   return (
     <>
-      {(showInstallButton || isIOS) && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="flex items-center gap-1"
-          onClick={handleInstallClick}
-        >
-          <Download className="h-4 w-4" />
-          {t('install_app')}
-        </Button>
-      )}
+      <Button 
+        variant={isMobile ? "default" : "outline"}
+        size={isMobile ? "default" : "sm"} 
+        className={`flex items-center gap-1 ${isMobile ? "w-full md:w-auto" : ""}`}
+        onClick={handleInstallClick}
+      >
+        <Download className={`${isMobile ? "h-5 w-5 mr-1" : "h-4 w-4"}`} />
+        {t('install_app')}
+      </Button>
 
       <Dialog open={isOpen} onOpenChange={setIsOpen}>
         <DialogContent className="sm:max-w-md">
@@ -146,7 +163,9 @@ const InstallPWA: React.FC = () => {
             <DialogDescription>
               {isIOS 
                 ? "To install this app on iOS, tap the share button and then 'Add to Home Screen'"
-                : t('install_app_description')
+                : isAndroid && !deferredPrompt
+                  ? "To install this app on Android, tap the menu button (three dots) and select 'Install app' or 'Add to Home Screen'"
+                  : t('install_app_description')
               }
             </DialogDescription>
           </DialogHeader>
@@ -159,6 +178,20 @@ const InstallPWA: React.FC = () => {
                   <li>Tap the Share button at the bottom of the screen</li>
                   <li>Scroll down and tap "Add to Home Screen"</li>
                   <li>Tap "Add" in the top right corner</li>
+                  <li>The app will be installed on your home screen</li>
+                </ol>
+              </div>
+            </div>
+          )}
+          
+          {isAndroid && !deferredPrompt && (
+            <div className="py-4">
+              <div className="bg-muted p-3 rounded-md text-sm">
+                <h3 className="font-medium">Android Installation Steps:</h3>
+                <ol className="list-decimal list-inside space-y-1 mt-2">
+                  <li>Tap the menu button (three dots) in the top right</li>
+                  <li>Select "Install app" or "Add to Home Screen"</li>
+                  <li>Follow the on-screen instructions</li>
                   <li>The app will be installed on your home screen</li>
                 </ol>
               </div>
