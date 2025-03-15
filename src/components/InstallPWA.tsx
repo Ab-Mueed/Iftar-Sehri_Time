@@ -30,6 +30,7 @@ const InstallPWA: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
+  const [showInstallButton, setShowInstallButton] = useState(false);
 
   useEffect(() => {
     // Check if the app is already installed
@@ -38,39 +39,45 @@ const InstallPWA: React.FC = () => {
       console.log('App is already installed and running in standalone mode');
     }
 
+    // Check if the app was launched from the home screen
+    const nav = window.navigator as NavigatorWithStandalone;
+    if (nav.standalone === true) {
+      setIsInstalled(true);
+      console.log('App launched from home screen (iOS)');
+    }
+
     // Listen for the beforeinstallprompt event
     const handleBeforeInstallPrompt = (e: Event) => {
       // Prevent the mini-infobar from appearing on mobile
       e.preventDefault();
+      console.log('beforeinstallprompt event fired');
+      
       // Stash the event so it can be triggered later
       setDeferredPrompt(e as BeforeInstallPromptEvent);
-      // Show the install dialog
-      setIsOpen(true);
-      console.log('beforeinstallprompt event fired');
+      
+      // Show the install button
+      setShowInstallButton(true);
     };
 
     // Listen for the appinstalled event
     const handleAppInstalled = () => {
-      // Log app installed
       console.log('App was installed');
       setIsInstalled(true);
       setDeferredPrompt(null);
+      setShowInstallButton(false);
       setIsOpen(false);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
-    // Check if the app was launched from the home screen
-    // Use type assertion for Safari's standalone property
-    const nav = window.navigator as NavigatorWithStandalone;
-    if (
-      (nav.standalone === true) ||
-      window.matchMedia('(display-mode: standalone)').matches
-    ) {
-      setIsInstalled(true);
-      console.log('App launched from home screen');
-    }
+    // Debug log for mobile
+    console.log('Mobile PWA debug:', {
+      isStandalone: window.matchMedia('(display-mode: standalone)').matches,
+      isSafariStandalone: (window.navigator as NavigatorWithStandalone).standalone,
+      userAgent: window.navigator.userAgent,
+      isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(window.navigator.userAgent)
+    });
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -81,6 +88,13 @@ const InstallPWA: React.FC = () => {
   const handleInstallClick = async () => {
     if (!deferredPrompt) {
       console.log('No installation prompt available');
+      
+      // For iOS devices, show instructions
+      if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        setIsOpen(true);
+        return;
+      }
+      
       return;
     }
 
@@ -99,6 +113,7 @@ const InstallPWA: React.FC = () => {
     
     // Clear the deferredPrompt for the next time
     setDeferredPrompt(null);
+    setShowInstallButton(false);
     setIsOpen(false);
   };
 
@@ -107,15 +122,17 @@ const InstallPWA: React.FC = () => {
     return null;
   }
 
-  // Show the install button if we have a deferred prompt
+  // Check if it's iOS
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
   return (
     <>
-      {deferredPrompt && (
+      {(showInstallButton || isIOS) && (
         <Button 
           variant="outline" 
           size="sm" 
           className="flex items-center gap-1"
-          onClick={() => setIsOpen(true)}
+          onClick={handleInstallClick}
         >
           <Download className="h-4 w-4" />
           {t('install_app')}
@@ -127,13 +144,33 @@ const InstallPWA: React.FC = () => {
           <DialogHeader>
             <DialogTitle>{t('install_app')}</DialogTitle>
             <DialogDescription>
-              {t('install_app_description')}
+              {isIOS 
+                ? "To install this app on iOS, tap the share button and then 'Add to Home Screen'"
+                : t('install_app_description')
+              }
             </DialogDescription>
           </DialogHeader>
+          
+          {isIOS && (
+            <div className="py-4">
+              <div className="bg-muted p-3 rounded-md text-sm">
+                <h3 className="font-medium">iOS Installation Steps:</h3>
+                <ol className="list-decimal list-inside space-y-1 mt-2">
+                  <li>Tap the Share button at the bottom of the screen</li>
+                  <li>Scroll down and tap "Add to Home Screen"</li>
+                  <li>Tap "Add" in the top right corner</li>
+                  <li>The app will be installed on your home screen</li>
+                </ol>
+              </div>
+            </div>
+          )}
+          
           <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
-            <Button onClick={handleInstallClick} className="w-full sm:w-auto">
-              {t('install_now')}
-            </Button>
+            {!isIOS && deferredPrompt && (
+              <Button onClick={handleInstallClick} className="w-full sm:w-auto">
+                {t('install_now')}
+              </Button>
+            )}
             <Button 
               variant="outline" 
               onClick={() => setIsOpen(false)}

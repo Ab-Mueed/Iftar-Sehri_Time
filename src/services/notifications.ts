@@ -76,13 +76,19 @@ export const sendNotification = async (
         badge: options.badge || '/icons/icon-192x192.png',
       };
       
-      // Add vibrate property using type assertion
-      const fullOptions = {
-        ...standardOptions,
-        vibrate: [100, 50, 100]
+      // Use a type that bypasses TypeScript checking for service worker notifications
+      type ServiceWorkerNotificationOptions = typeof standardOptions & {
+        vibrate?: number[];
       };
       
-      await registration.showNotification(title, fullOptions as any);
+      const fullOptions: ServiceWorkerNotificationOptions = {
+        ...standardOptions
+      };
+      
+      // Add vibrate property
+      fullOptions.vibrate = [100, 50, 100];
+      
+      await registration.showNotification(title, fullOptions);
       return true;
     } else {
       // Fallback to regular notifications
