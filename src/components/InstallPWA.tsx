@@ -31,14 +31,26 @@ const InstallPWA: React.FC = () => {
   const [isInstalled, setIsInstalled] = useState(false);
   const [isStandalone, setIsStandalone] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isAndroid, setIsAndroid] = useState(false);
+
+  // Check if we're in a browser environment
+  const isBrowser = typeof window !== 'undefined' && typeof navigator !== 'undefined';
 
   useEffect(() => {
+    if (!isBrowser) return;
+
     // Check if it's a mobile device
     const checkMobile = () => {
       const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
         navigator.userAgent
       );
       setIsMobile(isMobileDevice);
+      
+      // Also check for specific platforms
+      setIsIOS(/iPhone|iPad|iPod/i.test(navigator.userAgent));
+      setIsAndroid(/Android/i.test(navigator.userAgent));
+      
       return isMobileDevice;
     };
 
@@ -84,19 +96,18 @@ const InstallPWA: React.FC = () => {
       isStandalone: window.matchMedia('(display-mode: standalone)').matches,
       isSafariStandalone: (window.navigator as NavigatorWithStandalone).standalone,
       userAgent: window.navigator.userAgent,
-      isMobile: checkMobile()
+      isMobile: checkMobile(),
+      isIOS: isIOS,
+      isAndroid: isAndroid
     });
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
-  }, []);
+  }, [isBrowser]);
 
   const handleInstallClick = async () => {
-    // Check if it's iOS
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    
     // For iOS devices, always show instructions
     if (isIOS) {
       setIsOpen(true);
@@ -129,15 +140,10 @@ const InstallPWA: React.FC = () => {
     setIsOpen(true);
   };
 
-  // Don't show anything if the app is already installed or running in standalone mode
-  if (isInstalled || isStandalone) {
+  // Don't show anything if we're not in a browser, or if the app is already installed/standalone
+  if (!isBrowser || isInstalled || isStandalone) {
     return null;
   }
-
-  // Check if it's iOS
-  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  // Check if it's Android
-  const isAndroid = /Android/i.test(navigator.userAgent);
 
   // Only show the button on mobile devices
   if (!isMobile) {

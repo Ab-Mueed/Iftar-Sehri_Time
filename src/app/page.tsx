@@ -14,7 +14,6 @@ import { Button } from '@/components/ui/button';
 import { RefreshCw } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
 import { isAfter, isBefore } from 'date-fns';
-import InstallPWA from '@/components/InstallPWA';
 
 export default function Home() {
   const { t } = useTranslation();
@@ -192,19 +191,9 @@ export default function Home() {
       {!locationPermissionGranted && <LocationPermission />}
 
       <div className="w-full max-w-4xl mx-auto">
-        <header className="flex flex-col md:flex-row justify-between items-center mb-8 gap-2">
+        <header className="flex justify-between items-center mb-8">
           <h1 className="text-2xl md:text-3xl font-bold">{t('app_title')}</h1>
-          
-          {/* Mobile-only install button (more prominent) */}
-          <div className="w-full md:hidden flex justify-center mb-2">
-            <InstallPWA />
-          </div>
-          
           <div className="flex items-center space-x-2">
-            {/* Desktop install button */}
-            <div className="hidden md:block">
-              <InstallPWA />
-            </div>
             <Button 
               variant="outline" 
               size="icon" 

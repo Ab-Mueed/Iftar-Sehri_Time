@@ -11,7 +11,7 @@ const DateDisplay = () => {
   return (
     <Card className="mb-6">
       <CardContent className="p-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="flex items-center">
             <Calendar className="h-5 w-5 mr-2 text-primary" />
             <div className="flex flex-col">
@@ -20,7 +20,7 @@ const DateDisplay = () => {
             </div>
           </div>
           <div className="flex items-center">
-            <span className="text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
+            <span className="text-xs sm:text-sm font-medium bg-primary/10 text-primary px-2 py-1 rounded-full">
               {isNextDay ? t('showing_tomorrow') : t('showing_today')}
             </span>
           </div>

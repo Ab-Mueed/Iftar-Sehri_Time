@@ -4,16 +4,14 @@ import { Inter } from 'next/font/google';
 import { ThemeProvider } from '@/providers/ThemeProvider';
 import { AppProvider } from '@/context/AppContext';
 import { I18nProvider } from '@/providers/I18nProvider';
-import NotificationProvider from '@/providers/NotificationProvider';
 import { Toaster } from '@/components/ui/toaster';
-import InstallPWA from '@/components/InstallPWA';
+import { NotificationProvider } from '@/providers/NotificationProvider';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Iftar-Sehri Timer',
-  description: 'A simple Iftar and Sehri timer for Ramadan',
-  manifest: '/manifest.json',
+  title: 'Ramadan Timer',
+  description: 'Track Sehri and Iftar times during Ramadan',
 };
 
 export const viewport: Viewport = {
@@ -39,7 +37,6 @@ export default function RootLayout({
               <NotificationProvider>
                 {children}
                 <Toaster />
-                <InstallPWA />
               </NotificationProvider>
             </AppProvider>
           </ThemeProvider>
