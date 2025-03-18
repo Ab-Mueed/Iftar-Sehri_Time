@@ -129,7 +129,7 @@ export default function Home() {
       await refreshData();
       toast({
         title: 'Data refreshed',
-        description: 'Prayer times have been updated with the latest data.',
+        description: 'Ramadan timing updated with the latest data.',
       });
     } catch (error) {
       toast({
